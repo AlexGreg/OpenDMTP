@@ -1,0 +1,200 @@
+
+<!-- Copyright Martin D. Flynn -->
+<project name="OpenDMTP Java Server" default="help" basedir=".">
+
+  <!-- build compiler -->
+  <!-- <property name="build.compiler"       value="/export/java5/bin/javac"/> -->
+
+  <!-- Build properties -->
+  <property file="build.properties"/>
+  <property name="destination.name"     value="opendmtp"/>
+
+  <!-- Install home directory -->
+  <property name="install.home"         value="${basedir}/install"/>
+
+  <!-- Source directories -->
+  <property name="src.dmtp"             value="${basedir}/src"/>
+
+  <!-- Tomcat home (may be symbolic link) -->
+  <property name="catalina.home"        value="${basedir}/Tomcat"/>
+
+  <!-- libraries -->
+  <property name="lib.home"             value="${basedir}/lib"/>
+  <property name="build.home"           value="${basedir}/build"/>
+  <property name="build.lib"            value="${build.home}/lib"/>
+  
+  <!-- build destination directory -->
+  <property name="dest.home"            value="${build.home}/dest/${destination.name}"/>
+  <property name="dest.lib"             value="${dest.home}/lib"/>
+  <property name="dest.bin"             value="${dest.home}/bin"/>
+
+  <!-- compile options -->
+  <property name="compile.debug"        value="true"/>
+  <property name="compile.nowarn"       value="false"/>
+  <property name="compile.deprecation"  value="false"/>
+  <property name="compile.optimize"     value="false"/>
+  <property name="compile.Xlint"        value="-Xlint:all,-unchecked,-serial,-path"/>
+
+  <!-- jar classpath -->
+  <path id="compile.classpath">
+    <pathelement location="${build.home}"/>
+    <fileset dir="${build.lib}">
+        <include name="*.jar"/>
+    </fileset>
+  </path>
+
+  <!-- ======================================================================== -->
+
+  <!-- Target: all -->
+  <target name="all" depends="clean,dmtpserv.jar,mainfile.jar" description="Clean/Build Server"/>
+
+  <!-- Target: help -->
+  <target name="help" description="Clean/Build project">
+
+    <echo message="help         : This help"/>
+    <echo message="filestore    : Create OpenDMTP server with the flat-file datastore"/>
+    <echo message="utils.jar    : Create runtime utils jar"/>
+    <echo message="dmtpserv.jar : Create generic server jar"/>
+    <echo message="clean        : Remove 'build' directory"/>
+
+  </target>
+
+  <!-- Target: clean -->
+  <target name="clean" description="Clean build">
+    <delete dir="${build.home}"/>
+  </target>
+
+  <!-- ======================================================================== -->
+
+  <!-- Target: prepare (create build directories) -->
+  <target name="prepare" description="Prepare for compile">
+
+    <mkdir dir="${build.home}"/>
+    <mkdir dir="${build.lib}"/>
+
+    <property name="compile.classpath" refid="compile.classpath"/>
+
+  </target>
+  
+  <!-- ======================================================================== -->
+
+  <!-- Target: utils.jar -->
+  <target name="utils.jar" depends="prepare" description="Create utils.jar">
+
+    <echo message="utils.jar ..."/>
+    <javac srcdir="${src.dmtp}"
+        source="1.5"
+        target="1.5"
+        destdir="${build.home}"
+        debug="${compile.debug}"
+        nowarn="${compile.nowarn}"
+        deprecation="${compile.deprecation}"
+        optimize="${compile.optimize}">
+        <compilerarg compiler="javac1.5" value="-Xlint:all,-deprecation,-unchecked,-serial,-path"/>
+        <classpath refid="compile.classpath"/>
+        <include name="org/opengts/util/**/*.java"/>
+    </javac>
+
+    <jar jarfile="${build.lib}/utils.jar">
+        <fileset dir="${build.home}">
+            <include name="org/opengts/util/**/*.class"/>
+        </fileset>
+    </jar>
+
+  </target>
+
+  <!-- ======================================================================== -->
+
+  <!-- Target: dmtpserv.jar -->
+  <target name="dmtpserv.jar" depends="prepare,utils.jar" description="Create dmtpserv.jar">
+
+    <echo message="dmtpserv.jar ..."/>
+    <javac srcdir="${src.dmtp}"
+        source="1.5"
+        target="1.5"
+        destdir="${build.home}"
+        debug="${compile.debug}"
+        nowarn="${compile.nowarn}"
+        deprecation="${compile.deprecation}"
+        optimize="${compile.optimize}">
+        <compilerarg compiler="javac1.5" value="-Xlint:all,-serial,-path"/>
+        <classpath refid="compile.classpath"/>
+        <include name="org/opendmtp/codes/**/*.java"/>
+        <include name="org/opendmtp/server/**/*.java"/>
+    </javac>
+
+    <jar jarfile="${build.lib}/dmtpserv.jar">
+        <fileset dir="${build.home}">
+            <include name="org/opendmtp/codes/**/*.class"/>
+            <include name="org/opendmtp/server/**/*.class"/>
+        </fileset>
+    </jar>
+    
+    <copy todir="${build.lib}">
+        <fileset dir="${basedir}/bin">
+           <include name="dmtpserv.sh"/>
+        </fileset>
+    </copy>
+    <chmod file="${build.lib}/dmtpserv.sh" perm="a+x"/>
+
+  </target>
+
+  <!-- ======================================================================== -->
+
+  <!-- Target: mainfile.jar -->
+  <target name="filestore" depends="mainfile.jar" description="Clean/Build server with flat-file datastore"/>
+  <target name="mainfile.jar" depends="prepare,dmtpserv.jar" description="Create mainfile.jar">
+
+    <echo message="mainfile.jar ..."/>
+    <javac srcdir="${src.dmtp}"
+        source="1.5"
+        target="1.5"
+        destdir="${build.home}"
+        debug="${compile.debug}"
+        nowarn="${compile.nowarn}"
+        deprecation="${compile.deprecation}"
+        optimize="${compile.optimize}">
+        <compilerarg compiler="javac1.5" value="-Xlint:all,-serial,-path"/>
+        <classpath refid="compile.classpath"/>
+        <include name="org/opendmtp/server_file/**/*.java"/>
+    </javac>
+
+    <jar jarfile="${build.lib}/mainfile.jar">
+        <fileset dir="${build.home}">
+            <include name="org/opendmtp/server_file/**/*.class"/>
+        </fileset>
+    </jar>
+
+  </target>
+
+  <!-- ======================================================================== -->
+
+  <!-- Target: mainlib.jar (if available) -->
+  <target name="libstore" depends="mainlib.jar" description="Clean/Build server with library datastore"/>
+  <target name="mainlib.jar" depends="prepare,dmtpserv.jar" description="Create mainlib.jar">
+
+    <echo message="mainlib.jar ..."/>
+    <javac srcdir="${src.dmtp}"
+        source="1.5"
+        target="1.5"
+        destdir="${build.home}"
+        debug="${compile.debug}"
+        nowarn="${compile.nowarn}"
+        deprecation="${compile.deprecation}"
+        optimize="${compile.optimize}">
+        <compilerarg compiler="javac1.5" value="-Xlint:all,-serial,-path"/>
+        <classpath refid="compile.classpath"/>
+        <include name="org/opendmtp/server_lib/**/*.java"/>
+    </javac>
+
+    <jar jarfile="${build.lib}/mainlib.jar">
+        <fileset dir="${build.home}">
+            <include name="org/opendmtp/server_lib/**/*.class"/>
+        </fileset>
+    </jar>
+
+  </target>
+
+  <!-- ======================================================================== -->
+
+</project>

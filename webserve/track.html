@@ -1,0 +1,405 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml">
+
+  <!--
+    Notes: 
+      - This HTML has been tested on Firefox v1.5.0, and IE v6.0, and has not been tested on
+        any other browsers.  If you see an issue with your current browser, please let us know.
+    Known Issues:
+      - Occasionally, due to browser caching, the 'Refresh' button does not always update the
+        map when a new point is available in the 'data.csv' file.  A browser 'reload' usually
+        works in this situation.
+  -->
+
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+    <title>OpenDMTP GPS Tracker</title>
+    
+    <style type="text/css">
+      body,td,input,select,textarea { font-size: 14px; font-family: verdena,sans-serif; }
+      v\:* { behavior: url(#default#VML); }
+    </style>
+    <!-- v\:* { behavior: url(#default#VML); } -->
+
+    <!-- load Google Maps scripts -->
+    <!-- Make sure you request a valid key from Google:
+      Visit "http://www.google.com/apis/maps/signup.html" and sign-up for a "Google Maps API Key".  
+      Then replace the text below marked "PLACE_KEY_HERE" with the key obtained from Google. -->
+    <script src="http://maps.google.com/maps?file=api&v=1&key=PLACE_KEY_HERE" type="text/javascript"></script>
+
+    <!-- custom JavaScript -->
+    <script type="text/javascript">
+    //<![CDATA[
+    
+    // --- Google Map dependencies ------------------------------------------
+    
+    // this is the file that is expected to contain the csv GPS data on the server
+    // change this file to match the accountId/deviceId of your device.
+    var DATA_CSV_FILE = "opendmtp_mobile.csv";
+    
+    // the following limits the number of 'pushPins' placed on the map to the last MAX_PUSH_PINS points.
+    var MAX_PUSH_PINS = 40; // arbitrary limit
+
+    // handle to Google Map object and PushPin icon
+    var googleMap     = null;
+    var pushPinIcon   = null;
+    
+    window.onresize = resizeTable;
+
+    // init Google Maps
+    function initMap() {
+    
+        // init pushpin icon
+        if (window.GIcon && (pushPinIcon == null)) {
+            pushPinIcon = new GIcon();
+            pushPinIcon.image  = "http://labs.google.com/ridefinder/images/mm_20_red.png";
+            pushPinIcon.shadow = "http://labs.google.com/ridefinder/images/mm_20_shadow.png";
+            pushPinIcon.iconSize   = new GSize(12, 20);
+            pushPinIcon.shadowSize = new GSize(22, 20);
+            pushPinIcon.iconAnchor = new GPoint(6, 20);
+            pushPinIcon.infoWindowAnchor = new GPoint(5, 1);
+        }
+      
+        // create Google map
+        if (window.GMap && (googleMap == null)) {
+            googleMap = new GMap(document.getElementById("map"));
+            googleMap.addControl(new GSmallMapControl());
+            googleMap.addControl(new GMapTypeControl());
+        }
+
+    }
+    
+    // create/return a Google GPoint
+    function createPoint(lat, lon) {
+        if (window.GPoint) {
+            return new GPoint(lon, lat);
+        } else {
+            return null;
+        }
+    }
+    
+    // create/return Google pushpin
+    function createPushPin(pt, ndx, name, mph) {
+       if (window.GMarker) {
+           var pin = new GMarker(pt, pushPinIcon);
+           var lat = strParseFloat(pt.y,4);
+           var lon = strParseFloat(pt.x,4);
+           var spd = strParseFloat(mph,1);
+           var html = "";
+           html += "<table>";
+           html += "<tr><td align=left nowrap><small>[#" + ndx + "] <b>" + name + "</b></small></td></tr>";
+           html += "<tr><td align=left nowrap><small>GPS: " + lat + " / " + lon + "</small></td></tr>";
+           html += "<tr><td align=left nowrap><small>Speed: " + spd + " mph</small></td></tr>";
+           html += "</table>";
+           GEvent.addListener(pin, 'click', function() {
+              pin.openInfoWindowHtml(html);
+           });
+           return pin;
+       } else {
+           return null;
+       }
+    }
+
+    // set map points
+    function setMap(centerPt, zoomFactor, points, pushPins) {
+        if (googleMap != null) {
+            googleMap.centerAndZoom(centerPt, zoomFactor);
+            googleMap.addOverlay(new GPolyline(points, "#FF2222", 2));
+            for (var i = 0; i < pushPins.length; i++) {
+                googleMap.addOverlay(pushPins[i]);
+            }
+        }
+    }
+    
+    // --- Map/Table handlers ------------------------------------------
+
+    // add 'trim()' function to String
+    String.prototype.trim = function() { return this.replace(/^\s+/,'').replace(/\s+$/,''); }
+
+    // get URL argument
+    function getArg(argName) {
+       var mainURL = window.location.search;
+       var argStr = mainURL.split('?');
+       if (argStr.length > 1) {
+           var args = argStr[1].split('&');
+           for (i in args) {
+              var keyVal = args[i].split('=');
+              if (argName == keyVal[0]) {
+                  //document.write("Found Key: " + keyVal[0] + " == " + keyVal[1] + "<br>");
+                  return keyVal[1];
+              }
+           }
+       }
+       return null;
+    }
+    
+    // parse float value
+    function numParseFloat(val) {
+       var num = parseFloat(val);
+       if (isNaN(num)) { num = 0; }
+       return num;
+    }
+    
+    // convert float value to string (with specified decimal places)
+    function strParseFloat(val, dec) {
+       // an unsophisticated numeric formatter
+       var num = numParseFloat(val);
+       if (dec > 0) {
+          var neg = (num >= 0)? "" : "-";
+          num = Math.abs(num);
+          var d;
+          for (d = 0; d < dec; d++) { num *= 10; }
+          num = parseInt(num + 0.5);
+          var str = new String(num);
+          while (str.length <= dec) { str = "0" + str; }
+          str = str.substring(0, str.length - dec) + "." + str.substring(str.length - dec);
+          return neg + str;
+       } else {
+          num = parseInt((num >= 0)? (num + 0.5) : (num - 0.5));
+          return new String(num);
+       }
+    }
+
+    // get XMLHttpRequest object
+    function getXMLHttpRequest() {
+        var req = null;
+        // native XMLHttpRequest version
+        if (window.XMLHttpRequest) {
+            try {
+                req = new XMLHttpRequest();
+            } catch(e) {
+                req = null;
+            }
+        } else 
+        // IE/Win ActiveX version
+        if (window.ActiveXObject) {
+            try {
+                req = new ActiveXObject("Msxml2.XMLHTTP");
+            } catch(e) {
+                try {
+                    req = new ActiveXObject("Microsoft.XMLHTTP");
+                } catch(e) {
+                    req = null;
+                }
+            }
+        } else {
+            req = null;
+        }
+        return req;
+    }
+
+    function getWindowHeight() {
+        var winHeight = 0;
+        if (typeof(window.innerWidth) == 'number') {
+            // Non-IE
+            winHeight = window.innerHeight; // innerWidth
+        } else 
+        if (document.documentElement && (document.documentElement.clientWidth || document.documentElement.clientHeight)) {
+            // IE 6+ in 'standards compliant mode'
+            winHeight = document.documentElement.clientHeight; // clientWidth
+        } else 
+        if (document.body && (document.body.clientWidth || document.body.clientHeight)) {
+            //IE 4 compatible
+            winHeight = document.body.clientHeight; // clientWidth
+        }
+        //window.alert( 'Height = ' + winHeight);
+        return winHeight;
+    }
+
+    // convenience: wrap value in specified font
+    function setFont(val, face, size) {
+        var s = "<font";
+        s += " face='" + face + "'";
+        s += "size=" + size;
+        s += ">";
+        s += val;
+        s += "</font>";
+        return s;
+    }
+    
+    // convenience: set header font
+    function hdrFont(val) {
+       return "<center><b>" + setFont(val, "arial", -1) + "</b></center>";
+    }
+    
+    // convenience: set data font
+    function dtaFont(val) {
+       return "<center>" + val + "</center>";
+    }
+
+    // populate data table
+    function populateDataTable(text, dataTable) {
+       var pointList = [];
+       var pushPinList = [];
+       if (text != null) {
+          var rcd = text.split('\n');
+          if (rcd.length >= 1) {
+              var ndx = 0;
+              var maxLat = -90.0, maxLon = -180.0;
+              var minLat =  90.0, minLon =  180.0;
+              var numWidth = 25, timeWidth = 160, nameWidth = 100, gpsWidth = 143;
+              var spdWidth = 43, headWidth =  43, altWidth = 45;
+              var tableData = "";
+              tableData += "<table id='data_table' cellspacing='0' cellpadding='0' border='1'>\n";
+              tableData += "<thead><tr>";
+              tableData += "<th width="+numWidth +" nowrap>" + hdrFont("#") + "</th>";
+              tableData += "<th width="+nameWidth+" nowrap>" + hdrFont("Code") + "</th>";
+              tableData += "<th width="+timeWidth+" nowrap>" + hdrFont("Date/Time") + "</th>";
+              tableData += "<th width="+gpsWidth +" nowrap>" + hdrFont("Lat/Long") + "</th>";
+              tableData += "<th width="+spdWidth +" nowrap>" + hdrFont("MPH") + "</th>";
+              tableData += "</tr></thead>\n";
+              tableData += "<tbody id='data_tbody'>\n";
+              var startNdx = rcd.length - MAX_PUSH_PINS - 1; // '- 1' because the last 'rcd' is blank
+              if (startNdx < 0) { startNdx = 0; }
+              for (var i = startNdx; i < rcd.length; i++) {
+                  if (rcd[i].trim() != "") {
+                    var fld = rcd[i].split(',');
+                    if (fld.length >= 1) {
+                        var date = (fld.length > 0)? fld[0] : "";
+                        var time = (fld.length > 1)? fld[1] : "";
+                        var code = (fld.length > 2)? fld[2] : "";
+                        var lat  = numParseFloat((fld.length > 3)? fld[3] : "0");
+                        var lon  = numParseFloat((fld.length > 4)? fld[4] : "0");
+                        var kph  = numParseFloat((fld.length > 5)? fld[5] : "0");
+                        var mph  = kph  * 0.62137; // kph => mph
+                        if (lat > maxLat) { maxLat = lat; }
+                        if (lat < minLat) { minLat = lat; }
+                        if (lon > maxLon) { maxLon = lon; }
+                        if (lon < minLon) { minLon = lon; }
+                        ndx++;
+                        tableData += "<tr>";
+                        tableData += "<td width="+numWidth +" nowrap>"  + dtaFont(ndx) + "</td>";
+                        tableData += "<td width="+nameWidth+" nowrap>" + dtaFont(code) + "</td>";
+                        tableData += "<td width="+timeWidth+" nowrap>" + dtaFont(date+" "+time) + "</td>";
+                        tableData += "<td width="+gpsWidth +" nowrap>"  + dtaFont(strParseFloat(lat,4)+"/"+strParseFloat(lon,4)) + "</td>";
+                        tableData += "<td width="+spdWidth +" nowrap>"  + dtaFont(strParseFloat(mph,1)) + "</td>";
+                        tableData += "</tr>\n";
+                        var pt = createPoint(lat, lon);
+                        pointList.push(pt);
+                        pushPinList.push(createPushPin(pt, ndx, code, mph));
+                    }
+                  }
+              }
+              tableData += "</tbody>\n";
+              tableData += "</table>\n";
+              var centerPt = createPoint((minLat + maxLat) / 2.0, (minLon + maxLon) / 2.0);
+              var zoomFactor = 8;
+              setMap(centerPt, zoomFactor, pointList, pushPinList);
+              dataTable.innerHTML = tableData;
+          } else {
+              dataTable.innerHTML = "(No data) " + text;
+          }
+       } else {
+          dataTable.innerHTML = "Null data";
+       }
+    }
+    
+    // return the absolute Y offset of an object (relative to page
+    function getAbsoluteOffsetTop(obj) {
+        var absTop = 0;
+        if (obj.offsetParent) {
+            for (; obj.offsetParent; obj = obj.offsetParent) {
+                absTop += obj.offsetTop;
+            }
+        } else
+        if (obj.y) {
+            absTop += obj.y;
+        }
+        return absTop;
+    }
+
+    // on resize
+    function resizeTable() {
+        var dataTableDiv = document.getElementById('data_table_div');
+        var last_hr      = document.getElementById('last_hr');
+        var winHeight    = getWindowHeight();
+        var dataHeight   = (winHeight - last_hr.clientHeight) - getAbsoluteOffsetTop(dataTableDiv) - 25;
+        //alert("Table height: [" + getAbsoluteOffsetTop(dataTableDiv) + "] " + dataHeight);
+        if (dataHeight > 20) {
+            dataTableDiv.style.height = dataHeight + "px";
+        } else {
+            dataTableDiv.style.height = "auto";
+        }
+    }
+
+    // on page load
+    var recursiveRefresh = 0;
+    function refreshTable() {
+    
+       // check to see if we want to run this refresh function now
+       if (recursiveRefresh != 0) { return; /* we're already in a 'refresh' */ }
+       recursiveRefresh++;
+
+       // xml data file
+       var fileArg = getArg("file");
+       if ((fileArg == null) || (fileArg == "")) { fileArg = DATA_CSV_FILE; }
+       var fileURL = "./" + fileArg;
+       var dataTable = document.getElementById('data_table_div');
+
+       // init
+       initMap();
+
+       // read file
+       dataTable.innerHTML = "Updating data points [" + fileURL + "] ...";
+       var req = getXMLHttpRequest();
+       if (req) {
+           req.open("GET", fileURL, true);
+           req.onreadystatechange = function() {
+                if (req.readyState == 4) {
+                    // Data has been read.  Parse raw data as CSV
+                    populateDataTable(req.responseText, dataTable);
+                } else
+                if (req.readyState == 1) {
+                    dataTable.innerHTML = "Loading " + fileURL + " ...";
+                } else {
+                    //var http = "Problem loading file? [" + req.readyState + "] " + fileURL;
+                    //dataTable.innerHTML = http;
+                }
+           }
+           req.send(null);
+       } else {
+           dataTable.innerHTML = "Unable to create XMLHttpRequest object";
+       }
+       resizeTable();
+
+       recursiveRefresh--;
+    }
+
+    //]]>
+    </script>
+
+  </head>
+  
+  <body onload="refreshTable();">
+    <center>
+      <table>
+      
+      <tr><td align="center" height="100%">
+      <font size=+1><b>Personal GPS Tracker</b></font> <i>(click on a pushpin to see more detail)</i>
+      &nbsp;&nbsp;<button onclick="refreshTable();">Refresh</button>
+      <!-- 
+        This is where the map is displayed.  The width/height specified below controls
+        the size of the map (in pixels).
+      -->
+      <div id="map" style="width:570px; height:300px"></div>
+      <div id="message"></div>
+      <hr>
+      </td></tr>
+
+      <!-- 
+        This is where the data table is displayed.  The height specified below controls
+        the height of the diplayed table (in pixels).
+      -->
+      <tr><td align="center">
+        <font face='arial' size=-1><b>GPS Data</b> (scroll to view)</font>
+        <div id='data_table_div' style="overflow-x: hidden; overflow-y: scroll; margin-left: 15px;"></div>
+      </td></tr>
+      
+      <tr><td align="center">
+      <hr id='last_hr'>
+      </td></tr>
+
+    </center>
+  </body>
+
+</html>

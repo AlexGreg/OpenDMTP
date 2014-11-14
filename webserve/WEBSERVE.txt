@@ -1,0 +1,154 @@
+-----------------------------------------------------------------------------------
+Project: OpenDMTP Reference Implementation - Java server
+URL    : http://www.opendmtp.org
+File   : WEBSERVE.txt
+-----------------------------------------------------------------------------------
+
+This document contains details regarding how to configure a server with OpenDMTP
+and a web server to provide you with your personal web-based mobile GPS tracking 
+service.
+
+Contents:
+1) Notes
+2) Install/Configure the Server
+3) Install/Configure the Client
+4) Testing the System
+5) Troubleshooting
+6) Contact
+
+-----------------------------------------------------------------------------------
+1] Notes:
+
+This configuration uses Google Maps to display the GPS data points.  Before you can
+use the Google Maps JavaScript to display maps, you must first apply for an "API Key"
+from Google.  Visit "http://www.google.com/apis/maps/signup.html" for more 
+information. (Note: Make sure you fully comply with Google Map's 'Terms of Use').
+
+-----------------------------------------------------------------------------------
+2] Install/Configure the Server:
+
+1) Download and build the latest OpenDMTP Java server:
+   Copy the OpenDMTP Java server project 'zip' file to the server and unwrap in a 
+   convenient location.  Follow the directions in the README.txt file for building 
+   and installation instructions.
+    
+2) Configure your web server:
+   Install and configure your web server (Apache is a good choice).  No special 
+   configuration is necessary other than serving static HTML files.  You may wish
+   to add other restrictions as necessary to prevent unwanted access.
+   
+3) Install "track.html":
+   From the OpenDMTP Java server project directory, copy the file 
+   "webserve/track.html" to the document root of your web server:
+
+    % cp ./webserve/track.html <web_server_doc_root>/.
+    
+   Replace <web_server_doc_root> with the location of the web server document root.
+
+4) Edit "track.html" and insert the Google Maps API key:
+   Visit "http://www.google.com/apis/maps/signup.html" and apply for a "Google Maps
+   API Key".  Place this key in the appropriate area in the "track.html" file 
+   (search for "PLACE_KEY_HERE"). [Note: "track.html" has only been tested on Firefox
+   v1.5.0 and IE v6.0.  If you are using another browser, then additional changes 
+   may be necessary.]
+   
+5) While editing "track.html", make sure that the file indicated by the JavaScript
+   variable "DATA_CSV_FILE" correctly matches the name of the file on the server  
+   where your device data will be stored.
+
+6) Start the OpenDMTP Java server:
+   From the OpenDMTP directory, start the Java server DMTP service.
+
+   Linux:
+      % bin/server.sh -storedir=<web_server_doc_root>
+   Windows-XP:
+      > bin\server.bat "-storedir=<web_server_doc_root>"
+   
+   Replace <web_server_doc_root> with the location of the web server document root.  
+   This command will start the DMTP service to listen for client TCP/UDP connections 
+   port 31000 and will write received client event data in CSV format to the file 
+   "<AccountID>_<Device_ID>.csv" in your web server document root directory (which 
+   will later be accessed by 'track.html').
+
+   Important Note: The current flat-file data store implementation of the server will 
+   continue to collect GPS events and append them in the appropriate data files.  No 
+   provision is currently in place to trim this file of old obsolete GPS events, so 
+   you will need to perform this task manually.  This can be done in a nightly 'cron' 
+   job on the system by simply deleting, or renaming, the file(s) on a nightly basis.
+
+6) Update your firewall/router to forward inbound requests from port 80 (HTTP) and 
+   31000 (DMTP) to your server. (If necessary, you may wish to add other restrictions 
+   to prevent unwanted access.)
+
+7) Test the routing from outside your local network to your server.  See if you can 
+   specify the URL of your server from an outside browser and get a web page.  Try 
+   to 'telnet' to port 31000 on your server to see if you can connect:
+   
+     % telnet <my_server_host> 31000
+     
+   If you are unable to connect (ie. "connection refused", "could not open...", 
+   etc.), then your router or firewall still needs to be configured.  (make sure
+   you are trying to connect from "outside" your private network.)
+   
+   If you are assigned a dynamic IP address from your Internet service provider,
+   you may wish to look into using a service like www.dyndns.com to provide a 
+   static name to your dynamic IP address (see http://www.dyndns.com/services).
+   Most popular broad-band routers will already support these service internally 
+   (ie. NetGear, Linksys, ...).
+
+-----------------------------------------------------------------------------------
+3] Install/Configure the Client:
+
+1) Download the latest version of either the OpenDMTP C client, or J2ME client:
+   Unwrap the select OpenDMTP client project 'zip' file in a convenient location.
+
+2) Build and install the client project according to the accompanying documentation.
+   (The OpenDMTP C client project has some additional documentation for configuring
+   the C client for use with a web server which can be helpful here).
+
+3) Configure the selected OpenDMTP client to point to the hostname of your server.
+   
+4) Start the client application on your device and monitor the connection with the
+   server.  If the client has problems connecting to the server, see the 
+   "Troubleshooting" section below.
+
+-----------------------------------------------------------------------------------
+4] Testing the System:
+
+At this point place the client device in your vehicle and try driving around.  You 
+should see the device generate events and attempt to forward them to your server.
+
+Once back home, you can try viewing the data on a web-browser by visiting your GPS 
+tracking web page:
+
+   http://<my_domain_name>/track.html
+   
+Where <my_domain_name> is the domain-name or IP address of your webserver.
+
+-----------------------------------------------------------------------------------
+5] Troubleshooting:
+
+Problem - The client is unable to connect to the server:
+- Do you have a valid SIM card (with proper data plan) installed in your GPRS
+  modem, or phone?
+- Are you in an area that has GPRS coverage?
+- Is the host and port set properly to reference your server?
+- Does your firewall/router properly route inbound request to port 31000 to your
+  server?
+- If you are using the C client, refer to the documentation in the OpenDMTP C 
+  client package for additional troubleshooting help.
+
+Problem - The client can connect to the server, but the client does not appear 
+to be receiving GPS data.
+- Is the GPS receiver properly attached to the device?  Is the serial port 
+  properly attached and configured?  Or if you are using a wireless Bluetooth GPS
+  receiver, has the phone or device been properly configured with the appropriate
+  passkey of the GPS receiver?
+- If you are using th C client, refer to the documentation in the OpenDMTP C 
+  client package for additional troubleshooting help.
+
+-----------------------------------------------------------------------------------
+6] Contact:
+
+If you have any questions or comments, please feel free to contact us at
+devstaff@opendmtp.org

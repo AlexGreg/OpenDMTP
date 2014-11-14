@@ -1,0 +1,120 @@
+-----------------------------------------------------------------------------------
+Project: OpenDMTP Reference Implementation - Java server
+URL    : http://www.opendmtp.org
+File   : CHANGELOG.txt
+-----------------------------------------------------------------------------------
+
+Version 1.3.2
+- NEW: PayloadTemplate.java modified to accept String field defintions on constructor.
+
+Version 1.3.1
+- NEW: Updated utilities library
+
+Version 1.3.0
+- NEW: Updated to Java 5 (Java 5 compile now required)
+- NEW: Updated 'org.opengts.util' tools
+
+Version 1.2.14
+- NEW: Allow client to respond with an event template during the same session where
+       the server has responded with a NAK_FORMAT_NOT_RECOGNIZED error.  This now
+       allows immediate custom event packet negotiation.
+
+Version 1.2.13
+- NEW: Changed package name 'org.opendmtp.util' to 'org.opengts.util'.  This allows
+       reducing the size of the dmtpserv.jar, used by the OpenGTS project, by sharing
+       the low-level tools already provided in the OpenGTS project.  Those utilities
+       needed by OpenDMTP have still been included in this project and are now built
+       into the jar file 'utils.jar'.
+- NEW: Added additional field types to event packet template.
+
+Version 1.2.12
+- NEW: 'DMTPClientPacketHandler' changed to now support recording connection 
+       statistic information (bytesRead, bytesWritten, etc).
+- NEW: Added 'ClientDiagnostic.java' module for specifying client diagnostic values.
+
+Version 1.2.11
+- NEW: "org.opendmtp.server.db.DeviceDB.getPendingPackets()" now returns a
+       PacketList object (for optimization/error-checking).
+
+Version 1.2.10
+- NEW: Added several new fields captured by "DMTPGeoEvent.java", such as GPS HDOP,
+       VDOP, # of satellites, plus additional fields to capture engine diagnostic
+       information, etc.
+- CHG: Updated various support tools.
+
+Version 1.2.9
+- NEW: Added additional server shutdown methods
+- NEW: Added support for FLD_sensor32LO/FLD_sensor32HI data fields
+
+Version 1.2.8
+- NEW: Minor optimizations made to message logging.
+- FIX: Log file now properly displays account/device on client connection.
+
+Version 1.2.7
+- NEW: 'StatusCodes.GetCodeDescription' now defaults to hex value of status code.
+- NEW: Added check for remaining available read/write bytes to 'Payload'.
+- FIX: Fixed client IP address not properly being propagated to the Event record.
+
+Version 1.2.6
+- FIX: Fixed problem introduced in 'StringTools.parseBoolean' which caused it to
+       return the 'default' value, rather than 'false', if the parsed string was
+       not a true value.
+
+Version 1.2.5
+- NEW: Added FIELD_ODOMETER.
+- NEW: Added 'org.opendmtp.codes.PropCodes' class to handle server-side property 
+       requests and property formatting.
+- FIX: Fixed static Packet.getPacketLength to properly parse and return the proper
+       length of binary encoded packets (this fixes OpenGTS PendingPackets).
+
+Version 1.2.4
+- NEW: Added FIELD_OBC_COOLANT_LEVEL, FIELD_OBC_OIL_PRESSURE to OBC field support.
+- NEW: Added hi/lo resolution support for OBC 'LEVEL' fields (COOLANT, OIL, FUEL).
+- NEW: Added ability to listen on more than one port.
+- CHG: Changed FIELD_OBC_ENGINE_TEMP to FIELD_OBC_COOLANT_TEMP (+added hiRes mode)
+
+Version 1.2.3
+- CHG: When unable to determine the client packet encoding (typically due to a 
+       client protocol error), 'Hex' will be used as the default packet encoding 
+       when returning error packets (previously there was no default encoding which 
+       resulted in no error packets being returned).
+
+Version 1.2.2
+- NEW: Added support for new STATUS_QUERY and STATUS_LOW_BATTERY status codes.
+- CHG: The MySQL data store, and companion utilities, have been moved to the new 
+       project "OpenGTS".  This will allow the "OpenDMTP Java Server" package to 
+       remain a pure reference implementation of the server-side OpendDMTP protocol.
+- CHG: Code clean up to remove some of the potential compiler warnings.
+
+Version 1.1.4
+- NEW: Now includes a build target for creating a Servlet WAR file for delivering
+       CSV, or KML(XML), formatted records over the web. KML formatted records can
+       be imported directly into Google Earth (which also automatically retrieve
+       periodic updates to the data) so that as new records come in to the MySQL
+       database, they will automatically be updated in Google Earth.
+- NEW: MySQL datastore server now has better error checking.
+- NEW: The built-in logging facility has been updated with some additional 
+       features and provides an easier path for eventually porting to Log4J.
+
+Version 1.1.3
+- NEW: Now includes support for extracting events from the 'Device' MySQL table into 
+       a file in Google Earth's "kml" (XML) format.  This file can then be loaded 
+       and viewed in Google Earth.
+
+Version 1.1.2
+- BUG: Added a comment about the use of the JavaMail api.  Also, renamed the source
+       file "SendMail.java" to "SendMail.java.save" to allow the compiling without 
+       JavaMail api support.
+- NEW: Minor changes to the MySQL dabase support.
+
+Version 1.1.1
+- NEW: Now Includes support for MySQL data store.
+- NEW: Added "STATUS_INITIALIZED" and "STATUS_WAYMARK" to the OpenDMTP protocol.
+
+Version 1.1.0
+- NEW: First public release of the full featured OpenDMTP Java server reference
+       implementation.
+- NEW: Works with both C and J2ME based OpenDMTP clients.
+- NEW: Full support for Client Custom Event Packet Negotiation.
+- NEW: Protocol imlementation supports multiple accounts/devicess and connection
+       accounting. 

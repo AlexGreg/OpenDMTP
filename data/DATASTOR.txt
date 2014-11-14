@@ -1,0 +1,30 @@
+-----------------------------------------------------------------------------------
+Project: OpenDMTP Reference Implementation - Java server
+URL    : http://www.opendmtp.org
+File   : DATASTOR.txt
+-----------------------------------------------------------------------------------
+
+By default, the flat-file csv data store will place received event into this directory.  
+
+The file names will have the format "<Asset>_<Device>.csv".  For instance if the AssetID 
+is "smith" and the DeviceID is "ford", then the named file will be "smith_ford.csv".
+
+The events written to the files will be in CSV (comma separated value) format and will 
+contain the following fields:
+    <YYYY/MM/DD>,<hh:mm:ss>,<status>,<latitude>,<logitude>,<speed>,<heading>,<altitude>
+      <YYYY/MM/DD>  - UTC(GMT) year/month/day 
+      <hh:mm:ss>    - UTC(GMT) hour:minute:second
+      <status>      - The description of the status code
+      <latitude>    - GPS latitude
+      <longitude>   - GPS longitude
+      <speed>       - Current speed (in kilometers-per-hour)
+      <heading>     - Current 'direction' (in degrees)
+      <altitude>    - Current altitude (in meters)
+
+For example:
+    2006/03/26,13:38:26,InMotion,27.6219,-117.7331,15.0,151.1,1276.1
+
+To change the location where received events are stored, add the command line
+"-storedir=<directory>" to the filestore server startup command-line.
+
+-----------------------------------------------------------------------------------
